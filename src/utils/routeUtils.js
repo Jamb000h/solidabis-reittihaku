@@ -94,6 +94,32 @@ const removePassedStopsNotOnRoute = (passedStops, currentStop, from) => {
   }
 }
 
+const checkForSingleLineOpportunity = (reittiData, route) => {
+  const routeAsString = route.reduce((prev, cur) => {
+    return prev + cur.name
+  }, '')
+  const routeAsStringReverse = routeAsString
+    .split('')
+    .reverse()
+    .join('')
+
+  const linesAsStrings = Object.entries(reittiData.linjastot).map(line => ({
+    name: line[0],
+    line: line[1].join(''),
+  }))
+
+  for (let i = 0; i < linesAsStrings.length; i++) {
+    if (
+      linesAsStrings[i].line.includes(routeAsString) ||
+      linesAsStrings[i].line.includes(routeAsStringReverse)
+    ) {
+      return route.map(stop => ({ ...stop, line: linesAsStrings[i].name }))
+    }
+  }
+
+  return route
+}
+
 export const findRoute = (from, to) => {
   // Initialize variables
   const passedStops = []
@@ -157,15 +183,17 @@ export const findRoute = (from, to) => {
 
     // If we would next process our target stop, return it!
     if (currentStop.name === to) {
+      const route = removePassedStopsNotOnRoute(passedStops, currentStop, from)
+      // Make sure to use single line if the fastest route is possible on a single line
+      const routeCheckedForSingleLine = checkForSingleLineOpportunity(
+        reittiData,
+        route
+      )
       return {
         from: from,
         to: to,
         duration: currentStop.duration,
-        route: removePassedStopsNotOnRoute(
-          passedStops,
-          currentStop,
-          from
-        ).reverse(),
+        route: routeCheckedForSingleLine.reverse(),
       }
     }
   }
