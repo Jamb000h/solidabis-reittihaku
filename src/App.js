@@ -232,17 +232,17 @@ function App() {
           </div>
         </div>
         <div className="route">
-          {route !== undefined && route.route !== undefined && (
-            <span className="description">
-              Route from stop {from} to stop {to}
-            </span>
-          )}
           {route !== undefined &&
             route.route !== undefined &&
             route.route
               .reverse()
               .map((stop, index) => (
-                <Stop stop={stop} key={index} index={index} />
+                <Stop
+                  stop={stop}
+                  key={index}
+                  index={index}
+                  previousStop={index > 0 ? route.route[index - 1] : undefined}
+                />
               ))}
           {route !== undefined && route.route !== undefined && (
             <span className="duration">
