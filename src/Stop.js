@@ -1,7 +1,7 @@
 import React from 'react'
 
 export const Stop = ({ stop, index, previousStop }) => {
-  let lineColor = 'lightgrey'
+  let lineColor = ''
   switch (stop.line) {
     case 'keltainen':
       lineColor = 'yellow'
@@ -9,13 +9,12 @@ export const Stop = ({ stop, index, previousStop }) => {
     case 'punainen':
       lineColor = 'red'
       break
-    case 'vihreä':
-      lineColor = 'green'
-      break
     case 'sininen':
       lineColor = 'blue'
       break
     default:
+      // Should be green as we only have 4 options
+      lineColor = 'green'
       break
   }
 
