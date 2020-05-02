@@ -73,24 +73,13 @@ const getRoadsFromCurrentStop = (reittiData, currentStop, passedStops) =>
 
 const removePassedStopsNotOnRoute = (passedStops, currentStop, from) => {
   const stops = [currentStop]
-  let stopOnRoute = passedStops.find(
-    stop => stop.name === currentStop.previousStop
-  )
-  stops.push(stopOnRoute)
-
-  // Early return
-  if (stopOnRoute.name === from) {
-    return stops
-  }
-
   while (true) {
-    if (stopOnRoute.previousStop === from) {
-      return [...stops, passedStops.find(stop => stop.name === from)]
-    }
-    stopOnRoute = passedStops.find(
-      stop => stop.name === stopOnRoute.previousStop
-    )
+    let stopOnRouteName = stops[stops.length - 1].previousStop
+    let stopOnRoute = passedStops.find(stop => stop.name === stopOnRouteName)
     stops.push(stopOnRoute)
+    if (stopOnRouteName === from) {
+      return stops
+    }
   }
 }
 
@@ -124,15 +113,10 @@ export const findRoute = (from, to) => {
   // Initialize variables
   const passedStops = []
 
-  let currentStop = {
-    name: from,
-    duration: 0,
-    previousStop: undefined,
-  }
-
   // Remove starting stop from remaining stops
   let remainingStops = reittiData.pysakit
-    .filter(stop => stop !== currentStop.name)
+    .filter(stop => stop !== from)
+    // Map stop names to objects with needed properties
     .map(stop => ({
       name: stop,
       duration: Infinity,
@@ -141,6 +125,32 @@ export const findRoute = (from, to) => {
 
   // Yay Dijkstra
   while (remainingStops.length > 0) {
+    // Pick a new stop and remove it from remaining stops
+    let currentStop =
+      passedStops.length > 0
+        ? remainingStops.pop()
+        : {
+            name: from,
+            duration: 0,
+            previousStop: undefined,
+          }
+
+    // If we would next process our target stop, return it!
+    if (currentStop.name === to) {
+      const route = removePassedStopsNotOnRoute(passedStops, currentStop, from)
+      // Make sure to use single line if the fastest route is possible on a single line
+      const routeCheckedForSingleLine = checkForSingleLineOpportunity(
+        reittiData,
+        route
+      )
+      return {
+        from: from,
+        to: to,
+        duration: currentStop.duration,
+        route: routeCheckedForSingleLine.reverse(),
+      }
+    }
+
     // Get roads from current stop
     const roadsFromCurrentStop = getRoadsFromCurrentStop(
       reittiData,
@@ -158,11 +168,11 @@ export const findRoute = (from, to) => {
 
         // If we can get to the other stop faster than before, update its route to go through current stop
         if (road.kesto + currentStop.duration < nextStop.duration) {
-          // Get index
+          // Get index...
           const nextStopIndex = remainingStops.findIndex(
             stop => stop.name === nextStop.name
           )
-          // Aaaaand update
+          // ...aaaand update
           remainingStops[nextStopIndex] = {
             ...nextStop,
             duration: road.kesto + currentStop.duration,
@@ -178,24 +188,6 @@ export const findRoute = (from, to) => {
     passedStops.push(currentStop)
     // Sort remaining stop to have the closest stop on top
     remainingStops.sort((a, b) => a.duration - b.duration).reverse()
-    // Pick a new stop and remove it from remaining stops
-    currentStop = remainingStops.pop()
-
-    // If we would next process our target stop, return it!
-    if (currentStop.name === to) {
-      const route = removePassedStopsNotOnRoute(passedStops, currentStop, from)
-      // Make sure to use single line if the fastest route is possible on a single line
-      const routeCheckedForSingleLine = checkForSingleLineOpportunity(
-        reittiData,
-        route
-      )
-      return {
-        from: from,
-        to: to,
-        duration: currentStop.duration,
-        route: routeCheckedForSingleLine.reverse(),
-      }
-    }
   }
 
   // If no route between stops
